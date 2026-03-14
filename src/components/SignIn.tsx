@@ -28,7 +28,7 @@ export function SignIn() {
         </motion.div>
         
         <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-400 to-cyan-400">
-          Crazy Chat
+          Vibe Live Chat!
         </h1>
         <p className="text-zinc-400 mb-8">
           Join the most vibrant real-time chat experience.

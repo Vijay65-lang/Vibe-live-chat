@@ -133,7 +133,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
   // 1. Initialize from Local Storage & filter > 24h
   const [messages, setMessages] = useState<MessageData[]>(() => {
     try {
-      const saved = localStorage.getItem(`crazy_chat_messages_${roomId}`);
+      const saved = localStorage.getItem(`vibe_chat_messages_${roomId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         const now = Date.now();
@@ -186,7 +186,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
   // 2. Save to local storage whenever messages change
   useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem(`crazy_chat_messages_${roomId}`, JSON.stringify(messages));
+      localStorage.setItem(`vibe_chat_messages_${roomId}`, JSON.stringify(messages));
     }
   }, [messages, roomId]);
 
@@ -420,7 +420,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
       try {
         await navigator.share({
           title: `Join my private chat: ${roomName}`,
-          text: `Join me in ${roomName} on Crazy Chat!`,
+          text: `Join me in ${roomName} on Vibe Live Chat!`,
           url: url,
         });
       } catch (err) {
@@ -446,7 +446,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
             <Menu className="w-5 h-5" />
           </button>
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-tr from-fuchsia-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/20">
-            <span className="font-bold text-white text-lg md:text-xl">C</span>
+            <span className="font-bold text-white text-lg md:text-xl">V</span>
           </div>
           <div className="flex flex-col">
             <h1 className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-400 to-cyan-400 truncate max-w-[150px] md:max-w-xs">
@@ -558,7 +558,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
           <input
             value={formValue}
             onChange={(e) => setFormValue(e.target.value)}
-            placeholder="Type your crazy message..."
+            placeholder="Type your message..."
             disabled={isModerating}
             className="flex-1 bg-zinc-800/50 border border-zinc-700 rounded-full px-4 md:px-6 py-2 md:py-3 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent text-white placeholder-zinc-500 transition-all text-sm md:text-base disabled:opacity-50"
           />

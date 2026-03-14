@@ -7,6 +7,7 @@ import { Send, LogOut, Loader2, Share2, Globe, PlusCircle, X, Menu, Users, Trash
 import { motion, AnimatePresence } from 'motion/react';
 import { addXP, UserStats } from '../services/userService';
 import { moderateMessage, ModerationResult } from '../services/moderationService';
+import { playSound } from '../utils/sounds';
 
 enum OperationType {
   CREATE = 'create',
@@ -129,6 +130,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
   const [isDeletingMessage, setIsDeletingMessage] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [liveUsersCount, setLiveUsersCount] = useState<number>(1);
 
   // 1. Initialize from Local Storage & filter > 24h
   const [messages, setMessages] = useState<MessageData[]>(() => {
@@ -154,9 +156,11 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
   const dummy = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevScrollHeight = useRef<number>(0);
+  const prevMessagesLength = useRef<number>(0);
 
   // Fetch Room Metadata
   useEffect(() => {
+    playSound('join');
     if (roomId === 'public') {
       setRoomName('Public Chat');
       setRoomCreator(null);
@@ -190,6 +194,44 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
     }
   }, [messages, roomId]);
 
+  // 2.5 Presence System
+  useEffect(() => {
+    if (!user) return;
+
+    const updatePresence = async () => {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          currentRoom: roomId,
+          lastActive: Date.now()
+        });
+      } catch (e) {
+        console.error("Failed to update presence", e);
+      }
+    };
+
+    updatePresence();
+    const interval = setInterval(updatePresence, 60000);
+
+    const q = query(collection(db, 'users'), where('currentRoom', '==', roomId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const now = Date.now();
+      let count = 0;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.lastActive && now - data.lastActive < 2 * 60 * 1000) {
+          count++;
+        }
+      });
+      setLiveUsersCount(count > 0 ? count : 1);
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+      updateDoc(doc(db, 'users', user.uid), { currentRoom: null }).catch(() => {});
+    };
+  }, [roomId, user]);
+
   // 3. Firestore Listener with Pagination & 24h Filter
   useEffect(() => {
     const messagesRef = collection(db, 'rooms', roomId, 'messages');
@@ -216,6 +258,16 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
       
       setHasMore(snapshot.docs.length === messageLimit);
       const reversedMsgs = msgs.reverse();
+      
+      // Play sound if new message arrived and it's not from us
+      if (prevMessagesLength.current > 0 && reversedMsgs.length > prevMessagesLength.current) {
+        const lastMsg = reversedMsgs[reversedMsgs.length - 1];
+        if (lastMsg.uid !== user.uid) {
+          playSound('receive');
+        }
+      }
+      prevMessagesLength.current = reversedMsgs.length;
+      
       setMessages(reversedMsgs);
       setIsLoadingMore(false);
 
@@ -294,6 +346,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
     setFormValue(''); // Optimistic clear
     setModerationWarning(null);
     setPendingMessage('');
+    playSound('send');
     
     // Optimistic scroll
     setTimeout(() => dummy.current?.scrollIntoView({ behavior: 'smooth' }), 50);
@@ -433,10 +486,6 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
     }
   };
 
-  const activeUsersCount = roomId === 'public' 
-    ? new Set(messages.map(m => m.uid)).size 
-    : memberCount;
-
   return (
     <div className="flex flex-col h-full bg-zinc-950 relative">
       {/* Header */}
@@ -460,7 +509,7 @@ export function ChatRoom({ user, roomId, onChangeRoom, onMenuClick, isCreatingRo
                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">{roomVisibility}</span>
               )}
               <span className="text-[10px] text-zinc-500 flex items-center gap-1" title="Active Users">
-                <Users className="w-3 h-3" /> {activeUsersCount} {roomId === 'public' ? 'active' : 'members'}
+                <Users className="w-3 h-3" /> {liveUsersCount} {liveUsersCount === 1 ? 'active user' : 'active users'}
               </span>
             </div>
           </div>

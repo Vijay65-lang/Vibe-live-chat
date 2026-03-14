@@ -37,8 +37,9 @@ export const ChatMessage = memo(function ChatMessage({ message, isOwn, isSequent
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
       className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isSequential ? 'mt-1' : 'mt-4'} group`}
       onMouseEnter={() => setShowReactions(true)}
       onMouseLeave={() => setShowReactions(false)}
@@ -129,7 +130,10 @@ export const ChatMessage = memo(function ChatMessage({ message, isOwn, isSequent
                 const hasReacted = userArray.includes(currentUserId);
                 
                 return (
-                  <button
+                  <motion.button
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 15 }}
                     key={emoji}
                     onClick={() => onReact(id, emoji)}
                     className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 border ${
@@ -140,7 +144,7 @@ export const ChatMessage = memo(function ChatMessage({ message, isOwn, isSequent
                   >
                     <span>{emoji}</span>
                     <span>{userArray.length}</span>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, updateProfile } from 'firebase/auth';
 import { doc, getDocFromServer, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { SignIn } from './components/SignIn';
@@ -12,6 +12,7 @@ import { ChatRoom } from './components/ChatRoom';
 import { Sidebar } from './components/Sidebar';
 import { initUser, UserStats } from './services/userService';
 import { motion, AnimatePresence } from 'motion/react';
+import { X, Loader2 } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -20,6 +21,28 @@ export default function App() {
   const [roomId, setRoomId] = useState<string>('public');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newDisplayName.trim() || newDisplayName === user.displayName) return;
+    
+    setIsUpdatingProfile(true);
+    try {
+      await updateProfile(user, { displayName: newDisplayName.trim() });
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: newDisplayName.trim()
+      });
+      setUser({ ...user, displayName: newDisplayName.trim() } as User);
+      setIsSettingsOpen(false);
+    } catch (error) {
+      console.error("Failed to update profile", error);
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -125,16 +148,21 @@ export default function App() {
                   setIsCreatingRoom(true);
                   setIsSidebarOpen(false);
                 }}
+                onOpenSettings={() => {
+                  setNewDisplayName(user.displayName || '');
+                  setIsSettingsOpen(true);
+                }}
                 userStats={userStats}
               />
             </motion.div>
 
             {/* Main Chat Area */}
             <motion.div
-              key="chat"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              key={`chat-${roomId}`}
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: -10 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
               className="flex-1 flex flex-col h-full min-w-0"
             >
               <ChatRoom 
@@ -149,6 +177,64 @@ export default function App() {
                 setUserStats={setUserStats}
               />
             </motion.div>
+
+            {/* Settings Modal */}
+            <AnimatePresence>
+              {isSettingsOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.95, y: 20 }}
+                    className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl font-bold text-white">Settings</h2>
+                      <button onClick={() => setIsSettingsOpen(false)} className="text-zinc-400 hover:text-white transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-400 mb-1">Display Name</label>
+                        <input
+                          type="text"
+                          value={newDisplayName}
+                          onChange={(e) => setNewDisplayName(e.target.value)}
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                          placeholder="Your display name"
+                          maxLength={30}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end gap-3 mt-6">
+                        <button
+                          type="button"
+                          onClick={() => setIsSettingsOpen(false)}
+                          className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isUpdatingProfile || !newDisplayName.trim() || newDisplayName === user.displayName}
+                          className="px-4 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-fuchsia-600 to-cyan-600 text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {isUpdatingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         ) : (
           <motion.div

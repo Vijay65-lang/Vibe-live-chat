@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User } from 'firebase/auth';
-import { Globe, Hash, PlusCircle, Flame, Star, Trophy } from 'lucide-react';
+import { Globe, Hash, PlusCircle, Flame, Star, Trophy, Settings } from 'lucide-react';
 import { UserStats } from '../services/userService';
 
 interface SidebarProps {
@@ -10,6 +10,7 @@ interface SidebarProps {
   currentRoomId: string;
   onChangeRoom: (roomId: string) => void;
   onCreateRoomClick: () => void;
+  onOpenSettings: () => void;
   userStats: UserStats | null;
 }
 
@@ -19,7 +20,7 @@ interface RoomItem {
   theme?: string;
 }
 
-export function Sidebar({ user, currentRoomId, onChangeRoom, onCreateRoomClick, userStats }: SidebarProps) {
+export function Sidebar({ user, currentRoomId, onChangeRoom, onCreateRoomClick, onOpenSettings, userStats }: SidebarProps) {
   const [privateRooms, setPrivateRooms] = useState<RoomItem[]>([]);
   const [publicRooms, setPublicRooms] = useState<RoomItem[]>([]);
 
@@ -69,10 +70,17 @@ export function Sidebar({ user, currentRoomId, onChangeRoom, onCreateRoomClick, 
             className="w-10 h-10 rounded-full border border-zinc-700"
             referrerPolicy="no-referrer"
           />
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col overflow-hidden flex-1">
             <span className="font-semibold text-sm truncate text-zinc-100">{user.displayName || 'Anonymous'}</span>
             <span className="text-xs text-zinc-500 truncate">{user.email}</span>
           </div>
+          <button 
+            onClick={onOpenSettings}
+            className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+            title="User Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
         
         {userStats && (
@@ -124,9 +132,9 @@ export function Sidebar({ user, currentRoomId, onChangeRoom, onCreateRoomClick, 
                   const randomRoom = publicRooms[Math.floor(Math.random() * publicRooms.length)];
                   onChangeRoom(randomRoom.id);
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors bg-zinc-800/50 text-zinc-300 hover:bg-zinc-800 hover:text-white border border-zinc-700/50"
               >
-                <div className="w-5 h-5 flex items-center justify-center">🎲</div>
+                <div className="w-5 h-5 flex items-center justify-center text-lg">🎲</div>
                 <span className="font-medium text-sm">Join Random Room</span>
               </button>
             )}

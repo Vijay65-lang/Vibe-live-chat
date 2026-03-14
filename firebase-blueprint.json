@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User engagement stats and profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "streak": { "type": "number" },
+        "lastLoginDate": { "type": "string" },
+        "joinedRooms": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["uid", "xp", "level", "streak"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "A chat room (public or private).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "creatorUid": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "theme": { "type": "string" },
+        "visibility": { "type": "string", "enum": ["public", "private"] },
+        "members": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["name", "creatorUid", "createdAt", "members", "visibility"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A chat message sent by a user.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "reactions": { "type": "object" },
+        "level": { "type": "number" },
+        "isHighlighted": { "type": "boolean" }
+      },
+      "required": ["text", "uid", "displayName", "photoURL", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and stats."
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Collection of chat rooms."
+    },
+    "/rooms/{roomId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of chat messages within a room."
+    }
+  }
+}

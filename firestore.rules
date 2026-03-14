@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    match /rooms/{roomId} {
+      // Anyone with the room ID can read its metadata
+      allow get: if isAuthenticated();
+      // Users can list rooms they are a member of or if the room is public
+      allow list: if isAuthenticated() && (resource.data.visibility == 'public' || request.auth.uid in resource.data.members);
+      
+      // Anyone can create a room
+      allow create: if isAuthenticated();
+      // Allow updating to add members
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.creatorUid;
+
+      match /messages/{messageId} {
+        // Anyone with the room ID can read and list messages in it
+        allow read: if isAuthenticated();
+        // Anyone with the room ID can create a message
+        allow create: if isAuthenticated();
+        // Allow updating for reactions
+        allow update: if isAuthenticated();
+        allow delete: if isDocOwner();
+      }
+    }
+    
+    // Legacy support
+    match /messages/{messageId} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isDocOwner();
+    }
+  }
+}
